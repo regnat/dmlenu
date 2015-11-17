@@ -1,4 +1,4 @@
-open Batteries
+open Core.Std
 open Candidate
 type 'a t_open = {
   delay: bool;
@@ -12,8 +12,8 @@ type t = S : 'a t_open  -> t
 let (/) = Filename.concat
 
 let getenv var =
-  try Sys.getenv var
-  with Not_found -> ""
+  Sys.getenv var |>
+  Option.value ~default:""
 
 (* Word manipulation *)
 let rec compute_word_index ?(acc = 0) words position = match words with
@@ -43,22 +43,23 @@ let get_word ?(once = false) sep before after =
     before_inside = ""; after_inside = ""; new_word = (fun (a, b) -> a, b)
   } else
     let words =
-      if not once then String.nsplit ~by:sep total else
-      let (a, b) = try String.split ~by:sep total with _ -> total, "" in
-      [a; b]
+      if not once then String.split ~on:sep total else
+          String.lsplit2 ~on:sep total |>
+          Option.map ~f:(fun (a,b) -> [a; b]) |>
+          Option.value ~default:[total]
     in
     let word_index, index_inside, before_inside, after_inside =
       compute_word_index words (String.length before)
     in
-    let word = List.nth words word_index in
-    let before, after = List.split_at word_index words in
-    let after = List.tl after in
+    let word = List.nth_exn words word_index in
+    let before, after = List.split_n words word_index in
+    let after = List.tl_exn after in
     {
       word; index = word_index; index_inside; before; after;
       before_inside;
       after_inside;
       new_word = begin fun (bef, aft) ->
-        String.concat sep (before @ [bef]), String.concat sep (aft :: after)
+        String.concat ~sep:(String.of_char sep) (before @ [bef]), String.concat ~sep:(String.of_char sep) (aft :: after)
       end
     }
 
@@ -85,7 +86,8 @@ let basename s =
   else Filename.basename s
 
 let expand_tilde s = try
-  Str.global_replace (Str.regexp "^~") (getenv "HOME") s
+  (* Str.global_replace (Str.regexp "^~") (getenv "HOME") s *)
+  String.substr_replace_all ~pattern:"^~" ~with_:(getenv "HOME") s
   with _ -> s
 
 (* Actual sources *)
@@ -104,17 +106,17 @@ let files ?(filter=fun x -> true) root =
       let files = try Sys.readdir directory with _ -> [||] in
       let candidates =
         Array.to_list files |>
-        List.filter_map (fun file ->
+        List.filter_map ~f:(fun file ->
           let abs_path = directory / file in
           if not (filter abs_path) then None else
           let real, display =
-            if Sys.file_exists abs_path && Sys.is_directory abs_path then
+            if (Sys.file_exists abs_path = `Yes) && (Sys.is_directory abs_path = `Yes) then
               abs_path ^ "/", file ^ "/"
             else
               abs_path, file
           in
           let matching_function =
-            match_in_word "/" (fun query ->
+            match_in_word '/' (fun query ->
               Matching.match_query ~candidate:display (basename query)
             )
           in
@@ -132,33 +134,31 @@ let from_list_aux (display, real, doc) =
   Candidate.make ~real ~doc display
 
 let from_list_rev list =
-  let candidates = List.rev_map from_list_aux list in
+  let candidates = List.rev_map ~f:from_list_aux list in
   S { delay = false; default_state = (); 
       compute = (fun () _ -> ((), candidates)) }
 
 let from_list_lazy list = 
-  let candidates = lazy (List.map from_list_aux (Lazy.force list)) in
+  let candidates = lazy (List.map ~f:from_list_aux (Lazy.force list)) in
   S { delay = false; default_state = ();
       compute = (fun () _ -> ((), Lazy.force candidates)) }
 
 let from_list_lazy_ list = 
-  from_list_lazy (lazy (List.map (fun s -> s, s, "") (Lazy.force list)))
+  from_list_lazy (lazy (List.map ~f:(fun s -> s, s, "") (Lazy.force list)))
 
 let from_list list = from_list_lazy (lazy list)
 let from_list_ list = from_list_lazy_ (lazy list)
-let from_list_rev_ list = List.rev_map (fun x -> x, x, "") list |> from_list
+let from_list_rev_ list = List.rev_map ~f:(fun x -> x, x, "") list |> from_list
 
 
 let stdin ?sep () =
-  IO.lines_of stdin |> Enum.map (fun s ->
+    In_channel.input_lines stdin |> List.map ~f:(fun s ->
     match sep with
     | None -> s, s, ""
     | Some c ->
-      try
-        let display, real = String.split s ~by:c in
-        display, real, ""
-      with _ -> s, s, ""
-  ) |> List.of_enum |> from_list
+        Option.map ~f:(fun (display, real) -> display, real, "") (String.lsplit2 s ~on:c)
+        |> Option.value ~default:(s , s, "")
+  ) |> from_list
 
 let binaries =
   let aux s =
@@ -171,13 +171,13 @@ let binaries =
         (* File doesn't exist... Broken link? *)
         None
     in
-    try Array.to_list (Sys.readdir s) |> List.filter_map helper
+    try Array.to_list (Sys.readdir s) |> List.filter_map ~f:helper
     with _ -> []
   in
   let lower_compare s1 s2 = String.(compare (lowercase s1) (lowercase s2)) in
-  String.nsplit ~by:":" (getenv "PATH") |> List.map aux |> List.concat
-  |> List.sort (fun (s1, _) (s2, _) -> lower_compare s1 s2)
-  |> List.map (fun (x, y) -> (x, y, ""))
+  String.split ~on:':' (getenv "PATH") |> List.map ~f:aux |> List.concat
+  |> List.sort ~cmp:(fun (s1, _) (s2, _) -> lower_compare s1 s2)
+  |> List.map ~f:(fun (x, y) -> (x, y, ""))
   |> from_list
 
 let empty = S {
@@ -194,10 +194,10 @@ let switch list =
     default_state = None;
     compute = fun st query ->
       let (S source) =
-        Lazy.force @@ snd (List.find (fun (f, b) -> f query) list)
+        Lazy.force @@ snd (List.find_exn ~f:(fun (f, b) -> f query) list)
       in
       match st with
-      | Some (ST (state, source')) when Obj.magic source' == Obj.magic source ->
+      | Some (ST (state, source')) when phys_equal (Obj.magic source') (Obj.magic source) ->
         let (state, answer) = source'.compute state query in
         Some (ST (state, source')), answer
       | _ ->
@@ -207,9 +207,9 @@ let switch list =
 
 let paths ~coupled_with =
   switch [
-    flip String.starts_with "./", lazy (files (Sys.getcwd ()));
-    flip String.starts_with "~/", lazy (files (getenv "HOME"));
-    flip String.starts_with "/",  lazy (files "/");
+    String.is_prefix ~prefix:"./", lazy (files (Sys.getcwd ()));
+    String.is_prefix ~prefix:"~/", lazy (files (getenv "HOME"));
+    String.is_prefix ~prefix:"/",  lazy (files "/");
     (fun _ -> true), Lazy.from_val coupled_with
   ]
 
@@ -219,7 +219,7 @@ let update_candidates f (S x) =
     S { x with 
       compute = (fun state query ->
         let state', candidates = x.compute state query in
-        state', List.map f candidates)
+        state', List.map ~f:f candidates)
     }
 
 let update_matching f = 

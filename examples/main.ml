@@ -1,14 +1,14 @@
-open Batteries
+open Core.Std
 open Cmdliner
 open Candidate
 module Parameter = struct
     let normal_background_default = 
-      try Sys.getenv "DMENU_NORMAL_BACKGROUND" with _ -> "#222222"
+      Option.value (Sys.getenv "DMENU_NORMAL_BACKGROUND") ~default:"#222222"
     let normal_foreground_default = 
-      try Sys.getenv "DMENU_NORMAL_FOREGROUND" with _ -> "#bbbbbb"
-    let focus_background_default = try Sys.getenv "DMENU_FOCUS_BACKGROUND" with _ -> "#005577"
-    let focus_foreground_default = try Sys.getenv "DMENU_FOCUS_FOREGROUND" with _ -> "#eeeeee"
-    let match_foreground_default = try Sys.getenv "DMENU_FOCUS_FOREGROUND_MATCH" with _ -> "#ff0000"
+      Option.value (Sys.getenv "DMENU_NORMAL_FOREGROUND") ~default:"#bbbbbb"
+    let focus_background_default = Option.value (Sys.getenv "DMENU_FOCUS_BACKGROUND") ~default:"#005577"
+    let focus_foreground_default = Option.value (Sys.getenv "DMENU_FOCUS_FOREGROUND") ~default:"#eeeeee"
+    let match_foreground_default = Option.value (Sys.getenv "DMENU_FOCUS_FOREGROUND_MATCH") ~default:"#ff0000"
 
     let window_background = "#000000"
 

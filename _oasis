@@ -42,7 +42,7 @@ Library "dmlenu"
     CCLib:                -lX11
   Modules:              Candidate, Matching, Pagination, Source, Engine, State, Dmlenu, X
   CSources:             draw_funs.h, draw_funs.c, draw_stubs.c
-  BuildDepends:         batteries,lwt
+  BuildDepends:         lwt,core,threads
   XMetaDescription:     An OCaml library to easily create dmenu-like examples
 
 Library "dmlenu-extra"
@@ -60,7 +60,7 @@ Executable "dmlenu"
   Install:              true
   Path:                 examples
   MainIs:               main.ml
-  BuildDepends:         batteries,cmdliner,dmlenu,dmlenu.extra
+  BuildDepends:         cmdliner,dmlenu,dmlenu.extra
   CompiledObject:       best
 
 Executable "dmlenu_subcommands"

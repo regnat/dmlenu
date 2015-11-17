@@ -1,4 +1,4 @@
-open Batteries
+open Core.Std
 open Candidate
 
 
@@ -47,7 +47,7 @@ let rec shorten ~state candidate s =
     s
   else
     shorten ~state candidate
-      (try "..." ^ String.sub s 10 (String.length s - 10) with _ -> "")
+      (try "..." ^ String.sub s ~pos:10 ~len:(String.length s - 10) with _ -> "")
 
 let draw_vertical xstate topbar candidates =
   let init, f = 
@@ -95,7 +95,7 @@ let draw ({ xstate; prompt; state } as app_state) =
     incr ~xstate
   );
 
-  state.State.entries |> List.iter (fun (_, candidate) -> 
+  state.State.entries |> List.iter ~f:(fun (_, candidate) -> 
     X.Draw.text ~state: xstate ~focus: false "%s" candidate.display;
     incr ~xstate
   ) ;
@@ -175,4 +175,4 @@ let run ?topbar ?separator ?colors ?layout ?prompt ?hook program =
     (run_list ?topbar ?separator ?colors ?layout ?prompt ?hook program)
   with
   | [] -> None
-  | l -> Some (String.concat (Option.default " " separator) l)
+  | l -> Some (String.concat ~sep:(Option.value ~default:" " separator) l)

@@ -1,4 +1,4 @@
-open Batteries
+open Core.Std
 
 type 'a t = {
   unvisible_left: 'a list;
@@ -14,11 +14,11 @@ let empty = {
   unvisible_right = []; split = (fun l -> l, [])
 }
 let all l = List.rev l.unvisible_left @ l.visible @ l.unvisible_right
-let dump p =
-  let list = String.concat "\n" % List.map dump in
-  Printf.printf "Unvisible: [%s]\n" (list p.unvisible_left);
-  Printf.printf "Visible: [%s] [%d]\n" (list p.visible) p.selected;
-  Printf.printf "Unvisible: [%s]\n" (list p.unvisible_right)
+(* let dump p = *)
+(*   let list = Fn.compose (List.map ~f:dump) (String.concat ~sep:"\n") in *)
+(*   Printf.printf "Unvisible: [%s]\n" (list p.unvisible_left); *)
+(*   Printf.printf "Visible: [%s] [%d]\n" (list p.visible) p.selected; *)
+(*   Printf.printf "Unvisible: [%s]\n" (list p.unvisible_right) *)
 
 let from_list split = function
   | [] -> { empty with split }
@@ -69,14 +69,14 @@ let right p =
     { p with selected = p.selected + 1 }
 
 let fold_visible f state p = 
-  List.fold_left (fun (counter, state) elem ->
+  List.fold_left ~f:(fun (counter, state) elem ->
     (counter + 1, f state (counter = p.selected) elem))
-    (0, state)
+    ~init:(0, state)
     p.visible |> snd
 
 
 let selected p = 
   if p.visible = [] then failwith "Pagination.selected: empty list"
-  else List.nth p.visible p.selected
+  else List.nth_exn p.visible p.selected
 
 let is_empty p = p.visible = []
