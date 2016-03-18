@@ -2,6 +2,7 @@
 open Batteries
 
 type result = ((bool * int * int) list)
+type t = string -> result option
 
 let handle_case case_sensitive query candidate =
   if case_sensitive then
@@ -72,9 +73,13 @@ let fuzzy_prefix ?(case=true) ~candidate query =
   if query <> "" && candidate <> "" && candidate.[0] <> query.[0] then None else
   fuzzy_match ~case ~candidate query
 
+let trivial ~candidate _ = Some [false, 0, String.length candidate]
+
 (* ************************************************************************** *)
 let default_match_fun = ref (match_prefix ~case:true)
 
 let set_match_query_fun f = default_match_fun := f
 
 let match_query ~candidate query = !default_match_fun ~candidate query
+
+let on f t = fun s -> t (f s)

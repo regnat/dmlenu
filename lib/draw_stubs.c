@@ -42,7 +42,7 @@ caml_grabkeyboard(value unit) {
 caml_width(value unit)
 {
     CAMLparam1(unit);
-    CAMLreturn(Val_int(DisplayWidth(dc->dpy, screen)));
+    CAMLreturn(Val_int(mw));
 }
 
 void
@@ -147,6 +147,20 @@ caml_clear(value bg)
 {
     CAMLparam1(bg);
     drawrect(dc, 0, 0, mw, mh, True, getcolor(dc, String_val (bg)));
+    CAMLreturn(Val_unit);
+}
+
+value
+caml_clear_line(value cline, value bg)
+{
+    CAMLparam2(cline, bg);
+    int line = Int_val(cline) ;
+    if (bottom)
+        /* magic formula */
+        dc->y = mh - (bh - dc->font.ascent - 1 + line * bh);
+    else
+        dc->y = dc->font.ascent+1 + line * bh;
+    drawrect(dc, 0, dc->y - dc->font.ascent - 1, mw, bh, True, getcolor(dc, String_val (bg)));
     CAMLreturn(Val_unit);
 }
 

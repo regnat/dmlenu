@@ -1,7 +1,14 @@
-open Completion
 open Batteries
+open Candidate
+type 'a t_open = {
+  delay: bool;
+  default_state: 'a;
+  compute: 'a -> string -> ('a * Candidate.t list);
+}
 
-(* My Std *)
+type t = S : 'a t_open  -> t
+
+(* Useful functions *)
 let (/) = Filename.concat
 
 let getenv var =
@@ -65,8 +72,6 @@ let match_in_word separator f query =
   let { word ; _ } = get_word separator query "" in
   f word
 
-type t = ex_source
-
 let dirname s =
   if s = "" then ""
   else if s.[String.length s -1] = '/' then s
@@ -83,6 +88,7 @@ let expand_tilde s = try
   Str.global_replace (Str.regexp "^~") (getenv "HOME") s
   with _ -> s
 
+(* Actual sources *)
 let files ?(filter=fun x -> true) root =
   let root = root / "" in (* make it end by a slash *)
   let compute (old_dir, cache) query =
@@ -93,7 +99,7 @@ let files ?(filter=fun x -> true) root =
         root / dirname query
     in
     if old_dir = directory && cache <> [] then
-      (directory, cache), cache
+      ((directory, cache), cache)
     else
       let files = try Sys.readdir directory with _ -> [||] in
       let candidates =
@@ -112,30 +118,36 @@ let files ?(filter=fun x -> true) root =
               Matching.match_query ~candidate:display (basename query)
             )
           in
-          Some Completion.(
-            mk_candidate ~display ~completion:real ~real ~doc:abs_path
-              ~matching_function
+          Some Candidate.(
+            make ~completion:real ~real ~doc:abs_path
+              ~matching_function display
           )
         )
       in
-      (directory, candidates), candidates
+      ((directory, candidates), candidates)
   in
-  S { delay = false ; default = (root, []) ; compute }
+  S { delay = false ; default_state = (root, []) ; compute }
 
 let from_list_aux (display, real, doc) =
-  Completion.mk_candidate ~display ~real ~completion:display ~doc
-    ~matching_function:(Matching.match_query ~candidate:display)
+  Candidate.make ~real ~doc display
 
 let from_list_rev list =
   let candidates = List.rev_map from_list_aux list in
-  S { delay = false; default = (); compute = (fun () _ -> (), candidates) }
+  S { delay = false; default_state = (); 
+      compute = (fun () _ -> ((), candidates)) }
 
-let from_list list =
-  let candidates = List.map from_list_aux list in
-  S { delay = false; default = (); compute = (fun () _ -> (), candidates) }
+let from_list_lazy list = 
+  let candidates = lazy (List.map from_list_aux (Lazy.force list)) in
+  S { delay = false; default_state = ();
+      compute = (fun () _ -> ((), Lazy.force candidates)) }
 
-let from_list_ list = List.map (fun x -> x, x, "") list |> from_list
+let from_list_lazy_ list = 
+  from_list_lazy (lazy (List.map (fun s -> s, s, "") (Lazy.force list)))
+
+let from_list list = from_list_lazy (lazy list)
+let from_list_ list = from_list_lazy_ (lazy list)
 let from_list_rev_ list = List.rev_map (fun x -> x, x, "") list |> from_list
+
 
 let stdin ?sep () =
   IO.lines_of stdin |> Enum.map (fun s ->
@@ -147,7 +159,7 @@ let stdin ?sep () =
         display, real, ""
       with _ -> s, s, ""
   ) |> List.of_enum |> from_list
-     
+
 let binaries =
   let aux s =
     let helper s' =
@@ -170,24 +182,26 @@ let binaries =
 
 let empty = S {
   delay = false;
-  default = ();
-  compute = fun _ _ -> (), []
+  default_state = ();
+  compute = fun _ _ -> ((), [])
 }
 
+
+type state = ST : 'a * 'a t_open -> state
 let switch list =
   S {
     delay = false;
-    default = None;
+    default_state = None;
     compute = fun st query ->
       let (S source) =
         Lazy.force @@ snd (List.find (fun (f, b) -> f query) list)
       in
       match st with
       | Some (ST (state, source')) when Obj.magic source' == Obj.magic source ->
-        let state, answer = source'.compute state query in
+        let (state, answer) = source'.compute state query in
         Some (ST (state, source')), answer
       | _ ->
-        let state, answer = source.compute source.default query in
+        let (state, answer) = source.compute source.default_state query in
         Some (ST (state, source)), answer
   }
 
@@ -199,6 +213,28 @@ let paths ~coupled_with =
     (fun _ -> true), Lazy.from_val coupled_with
   ]
 
-let csum l =
-  let src = from_list_ @@ List.map fst l in
-  Completion.sum src (fun o -> Lazy.force (List.assoc o#display l))
+let initialize (S x) = ST (x.default_state, x)
+  
+let update_candidates f (S x) =
+    S { x with 
+      compute = (fun state query ->
+        let state', candidates = x.compute state query in
+        state', List.map f candidates)
+    }
+
+let update_matching f = 
+  update_candidates (fun c ->
+    { c with matching_function = f c.matching_function })
+
+let update_real f = 
+  update_candidates (fun c ->
+    { c with real = f c.real })
+
+let update_display f = 
+  update_candidates (fun c ->
+    { c with display = f c.display })
+
+let update_completion f = 
+  update_candidates (fun c ->
+    { c with completion = f c.completion })
+          

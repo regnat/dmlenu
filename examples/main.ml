@@ -1,7 +1,6 @@
 open Batteries
-open Completion
 open Cmdliner
-
+open Candidate
 module Parameter = struct
     let normal_background_default = 
       try Sys.getenv "DMENU_NORMAL_BACKGROUND" with _ -> "#222222"
@@ -54,31 +53,27 @@ module Parameter = struct
       Arg.(value & flag & info ["s"; "stdin"] ~doc)
 end
 
-let run prompt stdin bottom focus_foreground focus_background normal_foreground
+let run prompt stdin botbar focus_foreground focus_background normal_foreground
       normal_background match_foreground window_background lines = 
   let () = Matching.(set_match_query_fun @@ subset ~case:false) in
-  let open Dmlenu in
-  let conf = {
-    lines; stdin; bottom; focus_foreground; focus_background; normal_foreground;
-    normal_background; match_foreground; window_background;
-  }
+  let () = Candidate.(set_reorder_matched_fun prefixes_first) in
+  let colors = { X.Colors.focus_foreground; focus_background;
+                 normal_foreground; normal_background; match_foreground; window_background } in
+  let program = 
+    if stdin then Engine.singleton (Source.stdin ())
+    else {
+      Engine.sources = [ Source.binaries ];
+      transition = fun o -> Extra_sources.stm_from_file o.display
+    }
+  in    
+  let layout =
+    match lines with
+    | 0 -> State.SingleLine
+    | n -> State.MultiLine n
   in
-  let init_state = {
-    prompt ;
-    compl =
-      let open Sources in
-      let stm =
-        if conf.stdin then singleton (Lazy.from_fun @@ stdin) else {
-          ex_sources = [ Lazy.from_val binaries ] ;
-          transition = fun o -> Extra_sources.stm_from_file o#display ;
-        }
-      in
-      make_state stm
-  }
-  in
-  match run init_state conf with
-  | None -> exit (-1)
-  | Some inputed -> Printf.printf "%s\n%!" inputed
+  match Dmlenu.run ~prompt ~layout ~topbar:(not botbar) ~colors program with
+  | None -> ()
+  | Some s -> print_endline s
 
 let info = 
   let doc = "print a menu with customizable completion" in
