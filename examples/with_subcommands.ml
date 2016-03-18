@@ -28,10 +28,10 @@ let run =
     let () = Printf.eprintf "%s\n%!" source_name in
     let several = State.MultiLine 20 in
     if source_name = "chromium" then (
-      Matching.(set_match_query_fun @@ fuzzy_match ~case:false) ;
+      Matches.(set_match_query_fun @@ fuzzy_match ~case:false) ;
       { state with state = { state.state with State.layout = several } }
     ) else (
-      Matching.(set_match_query_fun @@ match_prefix ~case:false) ;
+      Matches.(set_match_query_fun @@ match_prefix ~case:false) ;
       { state with state = { state.state with State.layout = several } }
     )
   in

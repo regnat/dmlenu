@@ -75,7 +75,7 @@ module Draw : sig
     (** Draw some text at the current position. [focus] is used to
         know which colors to use *)
 
-    val text_hl: state: state -> result: Matching.result -> focus: bool -> 
+    val text_hl: state: state -> result: Matches.result -> focus: bool -> 
       string -> unit
     (** Draw a text by highlighting some parts of it according to [result] *)
 

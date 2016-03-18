@@ -115,7 +115,7 @@ let files ?(filter=fun x -> true) root =
           in
           let matching_function =
             match_in_word "/" (fun query ->
-              Matching.match_query ~candidate:display (basename query)
+              Matches.match_query ~candidate:display (basename query)
             )
           in
           Some Candidate.(

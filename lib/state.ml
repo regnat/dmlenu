@@ -3,7 +3,7 @@ open Candidate
 
 type column = {
   src : Candidate.t ; (* used for caching *)
-  pages : (Candidate.t * Matching.result) Pagination.t ;
+  pages : (Candidate.t * Matches.result) Pagination.t ;
 }
 
 type layout =
@@ -17,9 +17,9 @@ type t = {
   after_cursor : string;
   program: Engine.t;
   sources : Source.state list;
-  candidates: (Candidate.t * Matching.result) Pagination.t;
+  candidates: (Candidate.t * Matches.result) Pagination.t;
   entries: (Engine.t * Candidate.t) list;
-  split: (Candidate.t * Matching.result) list -> (Candidate.t * Matching.result) list * (Candidate.t * Matching.result) list;
+  split: (Candidate.t * Matches.result) list -> (Candidate.t * Matches.result) list * (Candidate.t * Matches.result) list;
   layout : layout ;
 }
 

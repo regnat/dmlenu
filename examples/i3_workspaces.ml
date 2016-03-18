@@ -1,5 +1,5 @@
 let get_workspace prompt =
-  Matching.(set_match_query_fun @@ fuzzy_match ~case:false) ;
+  Matches.(set_match_query_fun @@ fuzzy_match ~case:false) ;
   let compl = Engine.singleton Extra_sources.i3_workspaces in
   match Dmlenu.(run ~prompt compl) with
   | None -> exit 0

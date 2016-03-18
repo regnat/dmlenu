@@ -5,7 +5,7 @@ type t = {
   real: string;
   doc : string;
   completion: string;
-  matching_function: Matching.t;
+  matching_function: Matches.t;
 }
 
 let make ?real ?(doc = "") ?matching_function ?completion display : t = {
@@ -13,7 +13,7 @@ let make ?real ?(doc = "") ?matching_function ?completion display : t = {
   real = Option.default display real;
   completion = Option.default display completion;
   matching_function = 
-    Option.default (Matching.match_query ~candidate: display) matching_function;
+    Option.default (Matches.match_query ~candidate: display) matching_function;
 }
 
 (* ************************************************************************** *)

@@ -10,7 +10,7 @@ type t = {
   completion: string;
   (** What should become of the inputbox after the user tried to
       complete on that one. *)
-  matching_function: Matching.t
+  matching_function: Matches.t
   (** How to know if the user's input matches this candidate *)
 }
 (** The type of candidates.
@@ -21,13 +21,13 @@ type t = {
     should be matched, displayed to the user. *)
 
     
-val make : ?real:string -> ?doc:string -> ?matching_function:Matching.t ->
+val make : ?real:string -> ?doc:string -> ?matching_function:Matches.t ->
   ?completion:string -> string -> t
 (** [make ~real ~doc ~matching_function ~completion display]
     creates a new candidate. The default values are:
     - real, completion: display
     - doc: empty
-    - matching_function: Matching.match_query ~candidate
+    - matching_function: Matches.match_query ~candidate
 *)
 
 (** {3 Reordering functions} *)
@@ -35,13 +35,13 @@ val make : ?real:string -> ?doc:string -> ?matching_function:Matching.t ->
 (** After matching on candidates, a reordering function is called that can
     change their order. *)
 
-val reorder_matched : (t * Matching.result) list -> (t * Matching.result) list
+val reorder_matched : (t * Matches.result) list -> (t * Matches.result) list
 (** The reordering function (by default, the identity). *)
 
-val set_reorder_matched_fun : ((t * Matching.result) list -> (t * Matching.result) list) -> unit
+val set_reorder_matched_fun : ((t * Matches.result) list -> (t * Matches.result) list) -> unit
 (** Set the reordering function. *)
 
 (** {2 Predefined reordering functions} *)
 
 (** Reorder the candidates to put prefix matchings first. *)
-val prefixes_first : (t * Matching.result) list -> (t * Matching.result) list
+val prefixes_first : (t * Matches.result) list -> (t * Matches.result) list

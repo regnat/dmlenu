@@ -14,7 +14,7 @@ type result = ((bool * int * int) list)
 
 type t = string -> result option
 (** The type of matching functions *)
-(** {3 Matching function} *)
+(** {3 Matches function} *)
 
 val match_query : candidate:string -> t
 (** The default matching function *)

@@ -4,7 +4,7 @@
 
 type column = {
   src : Candidate.t ;
-  pages : (Candidate.t * Matching.result) Pagination.t ;
+  pages : (Candidate.t * Matches.result) Pagination.t ;
 }
 
 
@@ -29,11 +29,11 @@ type t = {
   program: Engine.t; (** The current program we are running *)
 
   sources : Source.state list; (** The current sources of tokens *)
-  candidates: (Candidate.t * Matching.result) Pagination.t; (** The current candidates for tokens *)
+  candidates: (Candidate.t * Matches.result) Pagination.t; (** The current candidates for tokens *)
 
   entries: (Engine.t * Candidate.t) list; (** The tokens we have read so far and the past program so we can go back there if we need to. *)
 
-  split: (Candidate.t * Matching.result) list -> (Candidate.t * Matching.result) list * (Candidate.t * Matching.result) list;
+  split: (Candidate.t * Matches.result) list -> (Candidate.t * Matches.result) list * (Candidate.t * Matches.result) list;
   (** How to know how many token candidates we can display *)
 
   layout : layout ;
@@ -41,7 +41,7 @@ type t = {
 (** The type of state the engine *)
 
 val initial : separator: string -> program: Engine.t -> layout:layout ->
-  split: ((Candidate.t * Matching.result) list -> (Candidate.t * Matching.result) list * (Candidate.t * Matching.result) list) -> t
+  split: ((Candidate.t * Matches.result) list -> (Candidate.t * Matches.result) list * (Candidate.t * Matches.result) list) -> t
 (** Creates an initial state out of a separator a program, and split functions *)
 
 val on_modify : t -> t

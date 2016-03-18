@@ -79,7 +79,7 @@ val stdin : ?sep:string -> unit -> t
 
 val update_candidates : (Candidate.t -> Candidate.t) -> t -> t
 (** Update the candidates returned by this source *)
-val update_matching : (Matching.t -> Matching.t) -> t -> t
+val update_matching : (Matches.t -> Matches.t) -> t -> t
 (** Update the matching function of the candidates returned by this source *)
 val update_completion : (string -> string) -> t -> t
 (** Update the completion of the candidates returned by this source *)
