@@ -48,10 +48,11 @@ caml_width(value unit)
 void
 setup(int topbar, const char *bg, unsigned int lines) {
     int x = 0, y = 0; /* position of the window */
-    if (!dc) {
+    /* if (!dc) { */
         dc = initdc();
-    }
+    /* } */
     initfont(dc, font);
+    XInitThreads();
     screen = DefaultScreen(dc->dpy);
     Window root = RootWindow(dc->dpy, screen);
     XSetWindowAttributes swa;
@@ -263,6 +264,7 @@ caml_xquit(value unit)
     CAMLparam1(unit);
 
     XUngrabKeyboard(dc->dpy, CurrentTime);
+    XUngrabServer(dc->dpy);
     XDestroyWindow(dc->dpy, win);
     XCloseDisplay(dc->dpy);
     CAMLreturn(Val_unit);
